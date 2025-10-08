@@ -48,9 +48,12 @@ def decrypt(offset, shift, cipher_text):
 def crack(cipher_text):
     num_possibilities = len(PLAIN_TEXT_WHEEL)
 
+    # Try all possible cipher offsets and shifts
     for offset in range(num_possibilities):
         for shift in range(num_possibilities):
             plain_text = decrypt(offset, shift, cipher_text)
+
+            # We assume that it starts with flag
             if plain_text.startswith("flag"):
                 return plain_text
 
