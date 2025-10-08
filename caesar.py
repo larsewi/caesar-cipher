@@ -1,62 +1,75 @@
 import argparse
-import sys
+
+PLAIN_TEXT_WHEEL = "abcdefghijklmnopqrstuvwxyz"
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Caesar Cipher")
     parser.add_argument(
-        "operation", choices=["encrypt", "decrypt"], help="encrypt or decrypt text"
+        "operation",
+        choices=["encrypt", "decrypt", "crack"],
+        help="encrypt, decrypt or crack cipher",
     )
-    parser.add_argument("--offset", type=int, help="initial cipher offset")
-    parser.add_argument("--shift", type=int, help="continuously shift cipher N times")
-    parser.add_argument("--input-file", type=str, help="input file (default: stdin)")
-    parser.add_argument("--output-file", type=str, help="output file (default: stdout)")
+    parser.add_argument("--offset", type=int, default=0, help="initial cipher offset")
+    parser.add_argument(
+        "--shift", type=int, default=0, help="continuously shift cipher"
+    )
     return parser.parse_args()
 
 
-def encrypt(offset, shift, input_file, output_file):
-    # Initialize plain wheel
-    plaintext_wheel = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+def encrypt(offset, shift, plain_text):
+    # Initialize cipher wheel. E.g. "xyzabcdefghijklmnopqrstuvw"
+    cipher_text_wheel = PLAIN_TEXT_WHEEL[-offset:] + PLAIN_TEXT_WHEEL[:-offset]
 
-    # Initialize cipher wheel
-    # E.g. "XYZABCDEFGHIJKLMNOPQRSTUVW"
-    cipher_wheel = plaintext_wheel[-offset:] + plaintext_wheel[:-offset]
+    # Capitalize plain text
+    plain_text = plain_text.lower()
 
-    # Read and capitalize input plain text
-    plaintext = input_file.read().upper()
-
-    for character in plaintext:
-        if character in plaintext_wheel:
+    cipher_text = ""
+    for character in plain_text:
+        if character in PLAIN_TEXT_WHEEL:
             # Transform plain text into cipher
-            index = plaintext_wheel.index(character)
-            character = cipher_wheel[index]
+            index = PLAIN_TEXT_WHEEL.index(character)
+            character = cipher_text_wheel[index]
 
-        # Write character to cipher text
-        output_file.write(character)
+            # Rotate cipher to the right
+            cipher_text_wheel = cipher_text_wheel[-shift:] + cipher_text_wheel[:-shift]
 
-        # Rotate cipher to the right
-        cipher_wheel = cipher_wheel[-shift:] + cipher_wheel[:-shift]
+        # Append character to cipher text
+        cipher_text += character
+
+    return cipher_text
 
 
-def decrypt(offset, shift, input_file, output_file):
-    # Decryption is done in reverse
-    encrypt(-offset, -shift, input_file, output_file)
+def decrypt(offset, shift, cipher_text):
+    # Decryption is the reverse of encryption
+    return encrypt(-offset, -shift, cipher_text)
+
+
+def crack(cipher_text):
+    num_possibilities = len(PLAIN_TEXT_WHEEL)
+
+    for offset in range(num_possibilities):
+        for shift in range(num_possibilities):
+            plain_text = decrypt(offset, shift, cipher_text)
+            if plain_text.startswith("flag"):
+                return plain_text
+
+    return "Failed to crack!"
 
 
 def main():
     args = parse_args()
 
-    # Open input / output file (or stdin / stdout)
-    input_file = open(args.input_file, "rt") if args.input_file else sys.stdin
-    output_file = open(args.output_file, "wt") if args.output_file else sys.stdout
+    input_text = input()
 
     if args.operation == "encrypt":
-        encrypt(args.offset, args.shift, input_file, output_file)
-    else:
-        decrypt(args.offset, args.shift, input_file, output_file)
+        output_text = encrypt(args.offset, args.shift, input_text)
+    elif args.operation == "decrypt":
+        output_text = decrypt(args.offset, args.shift, input_text)
+    else:  # args.operation == "crack"
+        output_text = crack(input_text)
 
-    input_file.close()
-    output_file.close()
+    print(output_text)
 
 
 if __name__ == "__main__":
